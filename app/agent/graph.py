@@ -51,12 +51,19 @@ def validate_sql_node(state: SQLAgentState) -> Dict[str, Any]:
     
     if not is_valid:
         print(f"[Agent] Validation Failed: {reason}")
+        security_answer = (
+            "I am a read-only Business Analyst AI. For security and database integrity reasons, "
+            "data modification commands (such as DELETE, DROP, UPDATE, INSERT, ALTER) are strictly prohibited. "
+            "I can only retrieve and analyze data using read-only SELECT queries."
+        )
         return {
             "error": f"SQL Safety Validation Failed: {reason}",
+            "answer": security_answer,
+            "is_security_violation": True,
         }
     
     print("[Agent] SQL Validation Passed.")
-    return {"error": ""}
+    return {"error": "", "is_security_violation": False}
 
 
 def execute_sql_node(state: SQLAgentState) -> Dict[str, Any]:
@@ -137,9 +144,12 @@ def generate_answer_node(state: SQLAgentState) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def decide_after_validation(state: SQLAgentState) -> str:
-    """Route to execute if valid, or fix_sql if invalid within retry limit."""
+    """Route to execute if valid, or fix_sql if invalid within retry limit (unless security violation)."""
     if not state.get("error"):
         return "execute_sql"
+    
+    if state.get("is_security_violation"):
+        return "end"
     
     max_retries = state.get("max_retries", 2)
     if state.get("retry_count", 0) < max_retries:

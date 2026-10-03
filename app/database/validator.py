@@ -46,6 +46,9 @@ def validate_sql(query: str) -> Tuple[bool, str]:
 
     cleaned = query.strip()
 
+    if cleaned == "REJECTED_NON_SELECT_INTENT":
+        return False, "Data modification commands (DELETE, DROP, UPDATE, INSERT, ALTER) are strictly prohibited."
+
     # Remove single line comments (-- ...) and multi-line comments (/* ... */)
     cleaned_no_comments = re.sub(r"--.*$", "", cleaned, flags=re.MULTILINE)
     cleaned_no_comments = re.sub(r"/\*.*?\*/", "", cleaned_no_comments, flags=re.DOTALL).strip()

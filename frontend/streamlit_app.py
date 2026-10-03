@@ -6,6 +6,7 @@ natural language query inputs, SQL inspection, data tables, and Plotly visualiza
 
 import os
 import requests
+from decimal import Decimal
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -155,17 +156,18 @@ if ask_button and user_question.strip():
                 error = data.get("error")
                 retry_count = data.get("retry_count", 0)
                 
-                # Check if there was an unresolved error
+                # Executive Summary Display
+                if answer:
+                    st.markdown("### 📋 Executive Summary")
+                    st.markdown(f'<div class="answer-card"><div style="font-size: 1.15rem; color: #1F2937; line-height: 1.6;">{answer}</div></div>', unsafe_allow_html=True)
+
+                # Security / Execution Warning Display
                 if error:
-                    st.error(f"⚠️ **Execution Error:** {error}")
-                    if sql:
+                    st.warning(f"⚠️ **Security Guardrail Notice:** {error}")
+                    if sql and sql != "REJECTED_NON_SELECT_INTENT":
                         with st.expander("🛠️ Attempted SQL Query", expanded=True):
                             st.code(sql, language="sql")
                 else:
-                    # Business Answer Display
-                    st.markdown("### 📋 Executive Summary")
-                    st.markdown(f'<div class="answer-card"><div style="font-size: 1.15rem; color: #1F2937; line-height: 1.6;">{answer}</div></div>', unsafe_allow_html=True)
-                    
                     # Metadata badges
                     badges_html = f'<span class="metric-badge">📊 {len(rows)} Row(s)</span>'
                     if retry_count > 0:
@@ -186,9 +188,10 @@ if ask_button and user_question.strip():
                             st.dataframe(df, use_container_width=True)
 
                         # Visualization Section (Plotly)
-                        # Automatically convert stringified numbers/decimals to numeric types
+                        # Automatically convert Decimal objects and stringified numbers to numeric types
                         clean_df = df.copy()
                         for col in clean_df.columns:
+                            clean_df[col] = clean_df[col].apply(lambda v: float(v) if isinstance(v, Decimal) else v)
                             converted = pd.to_numeric(clean_df[col], errors="coerce")
                             if converted.notna().sum() > 0 and converted.notna().sum() == clean_df[col].notna().sum():
                                 clean_df[col] = converted
@@ -235,10 +238,13 @@ if ask_button and user_question.strip():
                                         y=metric_col,
                                         markers=True,
                                         title=f"{metric_col.replace('_', ' ').title()} over {date_col.replace('_', ' ').title()}",
-                                        template="plotly_white",
                                     )
-                                    fig_line.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-                                    st.plotly_chart(fig_line, use_container_width=True)
+                                    fig_line.update_layout(
+                                        margin=dict(l=20, r=20, t=40, b=20),
+                                        paper_bgcolor="rgba(0,0,0,0)",
+                                        plot_bgcolor="rgba(0,0,0,0)",
+                                    )
+                                    st.plotly_chart(fig_line, use_container_width=True, config={"displayModeBar": False})
                                 else:
                                     # Categorical + Numeric -> Bar Chart
                                     label_col = non_metric_cols[0]
@@ -248,10 +254,13 @@ if ask_button and user_question.strip():
                                         y=metric_col,
                                         color=label_col if len(clean_df) <= 12 else None,
                                         title=f"{metric_col.replace('_', ' ').title()} by {label_col.replace('_', ' ').title()}",
-                                        template="plotly_white",
                                     )
-                                    fig_bar.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-                                    st.plotly_chart(fig_bar, use_container_width=True)
+                                    fig_bar.update_layout(
+                                        margin=dict(l=20, r=20, t=40, b=20),
+                                        paper_bgcolor="rgba(0,0,0,0)",
+                                        plot_bgcolor="rgba(0,0,0,0)",
+                                    )
+                                    st.plotly_chart(fig_bar, use_container_width=True, config={"displayModeBar": False})
                     else:
                         st.info("Query returned 0 rows from the database.")
             else:

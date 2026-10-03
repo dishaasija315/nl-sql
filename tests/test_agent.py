@@ -28,29 +28,20 @@ def test_agent_happy_path(mocker):
     assert "Delhi" in result.get("answer")
 
 
-def test_agent_validation_retry_loop(mocker):
-    """Test self-correction when LLM first generates invalid SQL (e.g., DROP TABLE), then fixes it."""
-    # First call generates unsafe query, fix_sql generates safe query
+def test_agent_security_violation_blocking(mocker):
+    """Test that DDL/DML security violations immediately short-circuit without retrying."""
     mock_gen = mocker.patch(
         "app.agent.graph.generate_sql",
         return_value="DROP TABLE customers;",
     )
-    mock_fix = mocker.patch(
-        "app.agent.graph.fix_sql",
-        return_value="SELECT name, city FROM customers;",
-    )
-    mock_ans = mocker.patch(
-        "app.agent.graph.generate_final_answer",
-        return_value="Here is the list of customers and cities.",
-    )
+    mock_fix = mocker.patch("app.agent.graph.fix_sql")
 
-    result = run_agent("List all customers", max_retries=2)
+    result = run_agent("Drop customers table", max_retries=2)
 
     assert mock_gen.called
-    assert mock_fix.called
-    assert result.get("retry_count") == 1
-    assert len(result.get("rows", [])) > 0
-    assert result.get("answer") == "Here is the list of customers and cities."
+    assert not mock_fix.called
+    assert "SQL Safety Validation Failed" in result.get("error")
+    assert "read-only Business Analyst AI" in result.get("answer")
 
 
 def test_agent_db_error_retry_loop(mocker):

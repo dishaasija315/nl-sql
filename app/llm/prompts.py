@@ -14,11 +14,11 @@ Your job is to translate natural-language business questions into accurate, exec
 
 Guidelines & Rules:
 1. Generate ONLY valid PostgreSQL SELECT queries (or Common Table Expressions using WITH ... SELECT).
-2. NEVER generate DDL or DML statements (such as INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE, GRANT, REVOKE).
+2. If the user question requests to delete, drop, update, insert, modify, alter, truncate, or create any data or tables (DML/DDL operations), respond with EXACTLY: REJECTED_NON_SELECT_INTENT
 3. Use only the tables, columns, and foreign key relationships provided in the database schema.
 4. When filtering text values (like names or cities), use case-insensitive matching with ILIKE or LOWER() when appropriate.
 5. Use proper SQL aggregate functions (SUM, COUNT, AVG, MIN, MAX) and GROUP BY / ORDER BY clauses when answering business aggregation questions.
-6. Return ONLY the raw SQL query. Do NOT include markdown code blocks, backticks, or conversational explanations.
+6. Return ONLY the raw SQL query or REJECTED_NON_SELECT_INTENT. Do NOT include markdown code blocks, backticks, or conversational explanations.
 """
 
 SQL_GENERATION_HUMAN = """Database Schema:

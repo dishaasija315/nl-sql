@@ -20,3 +20,5 @@ class SQLAgentState(TypedDict):
     answer: str                    # Final business answer
     retry_count: int               # Current retry attempt counter
     max_retries: int               # Maximum allowed retries before terminating
+    is_security_violation: bool    # True if query was blocked for safety/modification attempt
+
